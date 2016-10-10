@@ -1,0 +1,102 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" >
+<title>Rocket Viewer</title>
+
+<script id="vertex-shader" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+attribute vec4 vNorm;
+
+uniform vec4 vAmb, vDif, vSpc;
+uniform vec4 vLightPos;
+
+uniform int vShadingType;
+
+varying vec4 fColor;
+varying vec3 n, l, v;
+
+uniform mat4 modelViewMatrix, projectionMatrix, lightingMatrix;
+
+int FLAT = 0, GOURAUD = 1, PHONG = 2;
+
+void main()
+{
+	float shininess = 4.0;
+		
+	vec3 pointPos = (modelViewMatrix*vPosition).xyz;
+	
+	n = normalize(modelViewMatrix*vNorm).xyz;
+	v = -normalize(pointPos);
+	l = (lightingMatrix*vLightPos).xyz - pointPos;
+	l = normalize(l);
+	
+	if (vShadingType != PHONG)
+	{
+		vec3 r = normalize((2.0 * dot(l,n)*n) - l);
+		
+		vec4 amb = vAmb;
+		vec4 dif = (vDif * max(dot(l,n),0.0));
+		vec4 spc = (vSpc * pow(max(dot(r,v),0.0), shininess));
+	
+		fColor = amb+dif+spc;
+		fColor.a = 1.0;
+	}
+	//Apply all necessary transformations to each vertex.
+	gl_Position = projectionMatrix * modelViewMatrix * vPosition;
+
+}
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+precision mediump float;
+varying vec4 fColor;
+uniform int fShadingType;
+
+uniform vec4 fAmb, fDif, fSpc;
+varying vec3 n, l, v;
+
+int PHONG = 2;
+
+void main()
+{
+float shininess = 4.0;
+	
+	if (fShadingType != PHONG)
+		gl_FragColor = fColor;
+	else
+	{
+		vec3 r = normalize((2.0 * dot(l,n)*n) - l);
+	
+		vec4 amb = fAmb;
+		vec4 dif = (fDif * max(dot(l,n),0.0));
+		vec4 spc = (fSpc * pow(max(dot(r,v),0.0), shininess));
+	
+		vec4 color = amb+dif+spc;
+		color.a = 1.0;
+
+		gl_FragColor = color;
+	}
+	//gl_FragColor = vec4( 0.0, 0.5, 0.5, 1.0 );
+}
+</script>
+
+
+<script type="text/javascript" src="webgl-utils.js"></script>
+<script type="text/javascript" src="initShaders.js"></script>
+<script type="text/javascript" src="MV.js"></script>
+<script type="text/javascript" src="texture.js"></script>
+<script type="text/javascript" src="viewer.js"></script>
+<script type="text/javascript" src="user_in.js"></script>
+<script type="text/javascript" src="camera.js"></script>
+<script type="text/javascript" src="geometry.js"></script>
+
+</head>
+
+<body>
+<canvas id="gl-canvas" width="960" height="540">
+Oops ... your browser doesn't support the HTML5 canvas element
+</canvas>
+</body>
+</html>
