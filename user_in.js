@@ -52,6 +52,20 @@ window.onmousemove = function(e)
 		mouse_initY = e.clientY;
 	}
 }
+/*
+var cur_scroll = 0;
+window.onscroll = function(e)
+{
+	var delta = cur_scroll - document.body.scrollTop;
+	cur_scroll = document.body.scrollTop;
+	var camR = getCamR();
+	if (camR <= 3 && delta < 0)
+		return;
+	else if (camR > 100 && delta > 0)
+		return;
+	else
+		changeCamR(delta);
+}*/
 
 //Handles all keyboard input (key-down events).
 window.onkeydown = function(event)
@@ -60,9 +74,13 @@ window.onkeydown = function(event)
 	switch(code)
 	{
 		case 38: //Up Arrow
+		  if (getCamR() > 3)
+			  changeCamR(-1);
 		  break;
 			  
 		case 40: //Down Arrow
+		  if (getCamR() < 100)
+			  changeCamR(1);
 		  break;
 			  
 		case 37: //Left Arrow

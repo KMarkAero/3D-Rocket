@@ -13,6 +13,7 @@ var BODY_CLR = [
 var theta = [0.0, 0.0];
 
 var index = [];
+var polygons = [];
 
 //Projection matrix data
 var near = 0.3;
@@ -60,11 +61,26 @@ window.onload = function init()
     gl.useProgram( program );
 	
 	//Prepare vertices
-	index = [
+	/*index = [
 		geoCyl(),
 		geoSphere(4,false)
 	];
-	geoLine();
+	geoLine();*/
+	polygons.push(new triangle(vec4(0.0,0.0,0.0,1.0),vec4(0.0,1.0,0.0,1.0),vec4(1.0,0.0,0.0,1.0)));
+	polygons.push(new triangle(vec4(0.0,0.0,0.0,1.0),vec4(0.0,0.0,1.0,1.0),vec4(0.0,1.0,0.0,1.0)));
+	polygons.push(new triangle(vec4(0.0,0.0,1.0,1.0),vec4(1.0,0.0,0.0,1.0),vec4(0.0,1.0,0.0,1.0)));
+	polygons.push(new triangle(vec4(0.0,0.0,0.0,1.0),vec4(1.0,0.0,0.0,1.0),vec4(0.0,0.0,1.0,1.0)));
+
+	var genResult = gen_pts_norms(polygons);
+	points = genResult[0];
+	normals = genResult[1];
+	
+	for (var k=3;k < 6;k++)
+		polygons.push(new line(points[k],add(points[k],normals[k])));
+	
+	genResult = gen_pts_norms(polygons);
+	points = genResult[0];
+	normals = genResult[1];
 	
     var nBuffer = gl.createBuffer();
 	gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer );
@@ -168,7 +184,7 @@ function drawLine(x, y, z)
 	
 	gl.uniform1i(vShadingTypeLoc, shading);
 	gl.uniform1i(fShadingTypeLoc, shading);
-	gl.drawArrays( gl.LINES, index[0]+index[1], 12);
+	gl.drawArrays( gl.LINES, 12, 6);
 }
 
 function drawSphere()
@@ -187,6 +203,35 @@ function drawSphere()
 	gl.uniform1i(vShadingTypeLoc, shading);
 	gl.uniform1i(fShadingTypeLoc, shading);
 	gl.drawArrays( gl.TRIANGLES, index[0], index[1]);
+}
+
+function drawTri()
+{
+	//Moves the cyl to its position in space.
+	var instanceMatrix = mult(modelViewMatrix,translate(0.0,0.0,0.0));
+	//Rotates the cyl by the proper amount.
+	instanceMatrix = mult(instanceMatrix,rotate(90,[1.0,0.0,0.0]));
+	//Scales the cube by the current scale factor.
+	//instanceMatrix = mult(instanceMatrix,scale( 1.0, 1.0, 6.0));
+
+	//polygons = pmult(scale( 1.0, 1.0, 6.0),polygons,0,4);
+	//var genResult = gen_pts_norms(polygons);
+	//points = genResult[0];
+	//normals = genResult[1];
+	
+	var clr = BODY_CLR;
+	
+	//Sends the transformation matrix to the shaders.
+	gl.uniform4fv(vAmbLoc,flatten(mult(clr[0],light[0])));
+	gl.uniform4fv(vDifLoc,flatten(mult(clr[1],light[1])));
+	gl.uniform4fv(vSpcLoc,flatten(mult(clr[2],light[2])));
+	gl.uniformMatrix4fv(modelViewMatrixLoc,false,flatten(instanceMatrix));
+	
+	shading = FLAT;
+	
+	gl.uniform1i(vShadingTypeLoc, shading);
+	gl.uniform1i(fShadingTypeLoc, shading);
+	gl.drawArrays( gl.TRIANGLES, 0, 12);
 }
 
 var prev_time = 0.0;
@@ -223,9 +268,10 @@ function render(cur_time)
 	gl.uniform4fv(vLightPosLoc,lightPos);
 	
 	//Draws the cyl
-	drawCyl(0.0, 0.0, 0.0);
-	drawSphere();
+	//drawCyl(0.0, 0.0, 0.0);
+	//drawSphere();
 	drawLine(0.0,0.0,0.0);
+	drawTri();
 	
 	//Renders the frame
 	window.requestAnimFrame(render);

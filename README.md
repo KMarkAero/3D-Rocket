@@ -11,4 +11,3 @@ v0.1: Can generate a rough rocket shape (cylinder, cone, fins)
 	shading certain surfaces
 
 Development and testing done on a Windows 10 PC with Edge.
-WARNING: CHROME BROWSER NOT SUPPORTED
