@@ -78,6 +78,74 @@ function geoLine()
 	}
 }
 
+function geoCyl(L,D,nPanels)
+{
+	var polygons = [];
+	for (var k=0;k < nPanels;k++)
+	{
+		var x = D*cos(2*PI*k/nPanels);
+		var xx = D*cos(2*PI*(k+1)/nPanels);
+		var z = D*sin(2*PI*k/nPanels);
+		var zz = D*sin(2*PI*(k+1)/nPanels);
+		var a = vec4(x,0.0,z,1.0);
+		var b = vec4(x,-L,z,1.0);
+		var c = vec4(xx,0.0,zz,1.0);
+		var d = vec4(xx,-L,zz,1.0);
+		polygons = polygons.concat([new triangle(a,b,c), new triangle(c,b,d)]);
+	}
+	return polygons;
+}
+
+function geoCone(L,D,nPanels)
+{
+	var polygons = [];
+	for (var k=0;k < nPanels;k++)
+	{
+		var x = D*cos(2*PI*k/nPanels);
+		var xx = D*cos(2*PI*(k+1)/nPanels);
+		var z = D*sin(2*PI*k/nPanels);
+		var zz = D*sin(2*PI*(k+1)/nPanels);
+		var a = vec4(xx,0.0,zz,1.0);
+		var b = vec4(0.0,L,0.0,1.0);
+		var c = vec4(x,0.0,z,1.0);
+		polygons = polygons.concat(new triangle(a,b,c));
+	}
+	return polygons;
+}
+
+function geoFin(chord,span,thickness)
+{
+	var polygons = [];
+	//Leading Edge
+	var le1 = vec4(0.0,0.0,thickness/2,1.0);
+	var le2 = vec4(0.0,0.0,-thickness/2,1.0);
+	var le3 = vec4(span,-chord,-thickness/2,1.0);
+	var le4 = vec4(span,-chord,thickness/2,1.0);
+	
+	//Trailing Edge
+	var te1 = vec4(0.0,-chord,-thickness/2,1.0);
+	var te2 = vec4(0.0,-chord,thickness/2,1.0);
+	var te3 = vec4(span,-chord,thickness/2,1.0);
+	var te4 = vec4(span,-chord,-thickness/2,1.0);
+	
+	//Main Surfaces
+	var sa1 = vec4(0.0,0.0,thickness/2,1.0);
+	var sa2 = vec4(span,-chord,thickness/2,1.0);
+	var sa3 = vec4(0.0,-chord,thickness/2,1.0);
+	var sb1 = vec4(0.0,0.0,-thickness/2,1.0);
+	var sb2 = vec4(0.0,-chord,-thickness/2,1.0);
+	var sb3 = vec4(span,-chord,-thickness/2,1.0);
+	
+	return [
+		new triangle(le1,le2,le3),
+		new triangle(le1,le3,le4),
+		new triangle(te1,te2,te3),
+		new triangle(te1,te3,te4),
+		new triangle(sa1,sa2,sa3),
+		new triangle(sb1,sb2,sb3)
+	];
+}
+/*
 //Generate cylinder
 function geoCyl()
 {
@@ -120,7 +188,7 @@ function geoCyl()
 	linePts.push(c,add(c,nrm));
 	
 	return cntr + geoFins();
-}
+}*/
 
 function triangle(a, b, c, smooth_normals)
 {
@@ -163,35 +231,36 @@ function avg(a, b, c)
 
 function divTri(a, b, c, count, smooth_normals)
 {
+	var polygons = [];
 	if (count > 0)
 	{
 		var ab = normalize(mix(a, b, 0.5), true);
 		var ac = normalize(mix(a, c, 0.5), true);
 		var bc = normalize(mix(b, c, 0.5), true);
-		var cntr = 0;
 		
-		cntr += divTri(a, ab, ac, count - 1, smooth_normals);
-		cntr += divTri(ab, b, bc, count - 1, smooth_normals);
-		cntr += divTri(bc, c, ac, count - 1, smooth_normals);
-		cntr += divTri(ab, bc, ac, count - 1, smooth_normals);
-		return cntr;
+		polygons = polygons.concat(divTri(a, ab, ac, count - 1, smooth_normals));
+		polygons = polygons.concat(divTri(ab, b, bc, count - 1, smooth_normals));
+		polygons = polygons.concat(divTri(bc, c, ac, count - 1, smooth_normals));
+		polygons = polygons.concat(divTri(ab, bc, ac, count - 1, smooth_normals));
+		return polygons;
 	}
 	else
-		return triangle(a, b, c, smooth_normals);
+		return new triangle(a, b, c);//, smooth_normals);
 }
 
 function geoSphere(subdivisions, smooth_normals)
 {
+	var polygons = [];
+	
 	var va = vec4(0.0, 0.0, -1.0, 1);
 	var vb = vec4(0.0, 0.942809, 0.333333, 1);
 	var vc = vec4(-0.816497, -0.471405, 0.333333, 1);
 	var vd = vec4(0.816497, -0.471405, 0.333333, 1);
-	var cntr = 0;
 
-	cntr += divTri(va, vb, vc, subdivisions, smooth_normals);
-	cntr += divTri(vd, vc, vb, subdivisions, smooth_normals);
-	cntr += divTri(va, vd, vb, subdivisions, smooth_normals);
-	cntr += divTri(va, vc, vd, subdivisions, smooth_normals);
-	return cntr;
+	polygons = polygons.concat(divTri(va, vb, vc, subdivisions, smooth_normals));
+	polygons = polygons.concat(divTri(vd, vc, vb, subdivisions, smooth_normals));
+	polygons = polygons.concat(divTri(va, vd, vb, subdivisions, smooth_normals));
+	polygons = polygons.concat(divTri(va, vc, vd, subdivisions, smooth_normals));
+	return polygons;
 }
 

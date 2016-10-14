@@ -17,7 +17,8 @@ uniform int vShadingType;
 varying vec4 fColor;
 varying vec3 n, l, v;
 
-uniform mat4 modelViewMatrix, projectionMatrix, lightingMatrix;
+uniform mat4 modelViewMatrix, projectionMatrix;// lightingMatrix;
+uniform mat3 normalMatrix;
 
 int FLAT = 0, GOURAUD = 1, PHONG = 2;
 
@@ -27,10 +28,13 @@ void main()
 		
 	vec3 pointPos = (modelViewMatrix*vPosition).xyz;
 	
-	n = normalize(modelViewMatrix*vNorm).xyz;
+	n = normalize(normalMatrix*vNorm.xyz);
 	v = -normalize(pointPos);
-	l = (lightingMatrix*vLightPos).xyz - pointPos;
-	l = normalize(l);
+	
+	if (vLightPos.w == 0.0)
+		l = normalize(vLightPos.xyz);
+	else
+		l = normalize(vLightPos.xyz - pointPos);
 	
 	if (vShadingType != PHONG)
 	{

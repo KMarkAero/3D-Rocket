@@ -278,12 +278,12 @@ function mult( u, v )
 
     if ( u.matrix && v.matrix ) {
         if ( u.length != v.length ) {
-            throw "mult(): trying to add matrices of different dimensions";
+            throw "mult(): trying to multiply matrices of different dimensions";
         }
 
         for ( var i = 0; i < u.length; ++i ) {
             if ( u[i].length != v[i].length ) {
-                throw "mult(): trying to add matrices of different dimensions";
+                throw "mult(): trying to multiply matrices of different dimensions";
             }
         }
 
@@ -303,7 +303,26 @@ function mult( u, v )
 
         return result;
     }
-    else {
+    else if ( u.matrix && !v.matrix ) {
+		if ( u.length != v.length ) {
+            throw "mult(): matrix and vector dimensions do not match";
+        }
+		
+		for ( var i = 0; i < u.length; ++i ) {
+            result.push( [] );
+
+            var sum = 0.0;
+            for ( var k = 0; k < v.length; ++k ) {
+                sum += u[i][k] * v[k];
+            }
+            result[i].push( sum );
+        }
+		
+		result.matrix = true;
+		
+		return result;
+	}
+	else {
         if ( u.length != v.length ) {
             throw "mult(): vectors are not the same dimension";
         }
@@ -468,6 +487,22 @@ function perspective( fovy, aspect, near, far )
 
 //----------------------------------------------------------------------------
 //
+//  Normal Matrix Generator
+//
+
+function normalFromModel(modelViewMatrix)
+{
+	var normalMatrix = mat3(
+        vec3(modelViewMatrix[0][0], modelViewMatrix[0][1], modelViewMatrix[0][2]),
+        vec3(modelViewMatrix[1][0], modelViewMatrix[1][1], modelViewMatrix[1][2]),
+        vec3(modelViewMatrix[2][0], modelViewMatrix[2][1], modelViewMatrix[2][2])
+    );
+	
+	return inverse(normalMatrix);
+}
+
+//----------------------------------------------------------------------------
+//
 //  Matrix Functions
 //
 
@@ -488,6 +523,71 @@ function transpose( m )
     result.matrix = true;
     
     return result;
+}
+
+//----------------------------------------------------------------------------
+
+function inverse( m )
+{
+    if ( !m.matrix ) {
+        return "transpose(): trying to transpose a non-matrix";
+    }
+    
+    //create the identity matrix (I), and a copy (C) of the original
+    var i=0, ii=0, j=0, dim=m.length, e=0, t=0;
+    var I = [], C = [];
+    for(i=0; i<dim; i+=1){
+        // Create the row
+        I[I.length]=[];
+        C[C.length]=[];
+        for(j=0; j<dim; j+=1){
+            
+            if(i==j){ I[i][j] = 1; }
+            else{ I[i][j] = 0; }
+            
+            C[i][j] = m[i][j];
+        }
+    }
+    
+    // Perform elementary row operations
+    for(i=0; i<dim; i+=1){
+        e = C[i][i];
+
+        if(e==0){
+            for(ii=i+1; ii<dim; ii+=1){
+                if(C[ii][i] != 0){
+                    for(j=0; j<dim; j++){
+                        e = C[i][j];       //temp store i'th row
+                        C[i][j] = C[ii][j];//replace i'th row by ii'th
+                        C[ii][j] = e;      //repace ii'th by temp
+                        e = I[i][j];       //temp store i'th row
+                        I[i][j] = I[ii][j];//replace i'th row by ii'th
+                        I[ii][j] = e;      //repace ii'th by temp
+                    }
+                    break;
+                }
+            }
+            e = C[i][i];
+            if(e==0){return}
+        }
+
+        for(j=0; j<dim; j++){
+            C[i][j] = C[i][j]/e; //apply to original matrix
+            I[i][j] = I[i][j]/e; //apply to identity
+        }
+        
+        for(ii=0; ii<dim; ii++){
+            if(ii==i){continue;}
+            
+            e = C[ii][i];
+            
+            for(j=0; j<dim; j++){
+                C[ii][j] -= e*C[i][j]; //apply to original matrix
+                I[ii][j] -= e*I[i][j]; //apply to identity
+            }
+        }
+    }
+    return I;
 }
 
 //----------------------------------------------------------------------------

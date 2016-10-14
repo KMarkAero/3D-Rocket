@@ -1,6 +1,6 @@
 //Camera position data
 var initCamR = 16;
-var initCamTh = 75*PI/180;
+var initCamTh = 90*PI/180;
 var initCamPh = 0;
 var camR = initCamR, camPh = initCamPh, camTh = initCamTh;
 var eye = vec3(0.0, camR*cos(camTh), camR*sin(camTh));
