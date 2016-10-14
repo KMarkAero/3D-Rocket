@@ -7,6 +7,7 @@ var eye = vec3(0.0, camR*cos(camTh), camR*sin(camTh));
 var at = vec3(0.0,0.0,0.0);
 var up = vec3(0.0, cos(camTh-PI/2), sin(camTh+PI));
 var flip_flag = 1;
+var PI = 3.14159;
 
 //Resets all view parameters to their initial values.
 // -Returns camera to its initial position
@@ -23,6 +24,26 @@ function reset_view()
 	
 	theta = [0.0,0.0];
 
+}
+
+//Sets the arguments for lookAt()
+function eyeAtUp()
+{
+	eye = vec3(camR*sin(camTh)*sin(camPh),camR*cos(camTh),camR*sin(camTh)*cos(camPh));
+	var uTh = camTh-flip_flag*PI/2;
+	var uPh = camPh;
+	if (uTh < 0)
+	{
+		uTh = -uTh;
+		uPh += PI;
+	}
+	else if (uTh > PI)
+	{
+		uTh = 2*PI-uTh;
+		uPh -= PI;
+	}
+	up = vec3(sin(uTh)*sin(uPh),cos(uTh),sin(uTh)*cos(uPh));
+	//at = vec3(0.0,0.0,0.0);
 }
 
 //Mutators

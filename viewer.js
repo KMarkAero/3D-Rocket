@@ -10,8 +10,6 @@ var BODY_CLR = [
 	vec4( 1.0,1.0,0.0,1.0 )  //Specular
 ];
 
-var theta = [0.0, 0.0];
-
 var index = [0];
 var nPts = [];
 var polygons = [];
@@ -40,29 +38,31 @@ var modelViewMatrix, projectionMatrix;
 var modelViewMatrixLoc, projectionMatrixLoc, normalMatrixLoc;//, lightingMatrixLoc;
 var FLAT = 0, GOURAUD = 1, PHONG = 2;
 
-//Initializes WebGL, sets up buffers and uniform variables.
+//Initializes WebGL, creates the geometry, and sets up buffers and uniform variables.
 window.onload = function init()
 {
+	///////////////////////////////////////////////////////////////
+	// Configure WebGL - Do Not Edit
+	
     var canvas = document.getElementById( "gl-canvas" );
-    
     gl = WebGLUtils.setupWebGL( canvas );
     if ( !gl ) { alert( "WebGL isn't available" ); }
-
     //Configure WebGL
     gl.viewport( 0, 0, canvas.width, canvas.height );
-    gl.clearColor( 0.0, 0.8, 1.0, 1.0 );
 	
-	//Activate z-buffer
-	gl.enable( gl.DEPTH_TEST );
+	//Background Color
+    gl.clearColor( 0.0, 0.8, 1.0, 1.0 );  ////////////////// Edit this line only
 	
+	gl.enable( gl.DEPTH_TEST );  //Activate z-buffer
 	aspectRatio = canvas.width/canvas.height;
-
     //Load shaders
-    
     var program = initShaders( gl, "vertex-shader", "fragment-shader" );
     gl.useProgram( program );
 	
-	//Prepare vertices
+	// Configure WebGL
+	///////////////////////////////////////////////////////////////
+	// Prepare Geometry - EDIT HERE
+	
 	var spherePoly = geoSphere(6,false);
 	var cylPoly = geoCyl(8,0.5,64);
 	var conePoly = geoCone(2,0.5,64);
@@ -78,34 +78,21 @@ window.onload = function init()
 		get_nPts(finPoly)
 	];
 	
+	// Prepare Polygons - EDIT ABOVE
+	///////////////////////////////////////////////////////////////
+	// Prepare Poins and Normals
+	
+	//Create the array which stores the offsets of the points/normals arrays
 	for (var k=1;k < nPts.length;k++)
 		index.push(index[k-1]+nPts[k-1]);
-	console.log(nPts);
-	console.log(index);
-	//geoLine();
-	/*
-	polygons.push(new triangle(vec4(0.0,0.0,0.0,1.0),vec4(1.0,0.0,0.0,1.0),vec4(0.0,1.0,0.0,1.0)));
-	polygons.push(new triangle(vec4(0.0,0.0,0.0,1.0),vec4(0.0,1.0,0.0,1.0),vec4(0.0,0.0,1.0,1.0)));
-	polygons.push(new triangle(vec4(0.0,0.0,1.0,1.0),vec4(0.0,1.0,0.0,1.0),vec4(1.0,0.0,0.0,1.0)));
-	polygons.push(new triangle(vec4(0.0,0.0,0.0,1.0),vec4(0.0,0.0,1.0,1.0),vec4(1.0,0.0,0.0,1.0)));
-	
-	var genResult = gen_pts_norms(polygons);
-	points = genResult[0];
-	normals = genResult[1];
-	*/
-	for (var k=0;k < 0;k++)
-	{
-		var n = k+1;
-		if (k%3 == 2)
-			n = k-2;
-		polygons.push(new line(points[k],points[n]));
-		polygons.push(new line(points[k],add(points[k],normals[k])));
-		nLinePts += 4;
-	}
 	
 	genResult = gen_pts_norms(polygons);
 	points = genResult[0];
 	normals = genResult[1];
+	
+	// Prepare Points and Normals
+	///////////////////////////////////////////////////////////////
+	// Geometry Buffers: Set Up and Bind the Buffers - Do Not Edit
 	
     var nBuffer = gl.createBuffer();
 	gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer );
@@ -125,7 +112,10 @@ window.onload = function init()
     gl.vertexAttribPointer( vPosition, 4, gl.FLOAT, false, 0, 0 );
     gl.enableVertexAttribArray( vPosition );
 	
-	//Get location of uniform variables
+	// Geometry Buffers
+	///////////////////////////////////////////////////////////////
+	// Uniforms: Get locations of uniform variables
+	
 	modelViewMatrixLoc = getULoc( program, "modelViewMatrix" );
 	normalMatrixLoc = getULoc( program, "normalMatrix" );
 	projectionMatrixLoc = getULoc(program, "projectionMatrix");
@@ -140,12 +130,15 @@ window.onload = function init()
 	vShadingTypeLoc = getULoc(program, "vShadingType");
 	fShadingTypeLoc = getULoc(program, "fShadingType");
 	
-	//Calculate and send projection matrix
+	// Send Projection Matrix
 	projectionMatrix = perspective(fovy,aspectRatio,near,far);
 	gl.uniformMatrix4fv(projectionMatrixLoc,false,flatten(projectionMatrix)); 
 	
 	//Render the first frame
     window.requestAnimFrame(render);
+	
+	// Uniforms and Projection Matrix
+	///////////////////////////////////////////////////////////////
 };
 
 function getULoc(program, varName)
@@ -153,14 +146,15 @@ function getULoc(program, varName)
 	return gl.getUniformLocation(program, varName)
 }
 
-//
-function step_time(dT)
-{
+///////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////
+// DRAW FUNCTIONS
+// These functions set up the position/orientation of each instance of a particular geometry.
+// Loaded geometries may be used more than once or not at all, and they can be independently 
+// stretched, moved, or rotated.  Each time a new instance of a geometry is desired, a function
+// should be added here.
 
-}
-
-//Sends the matrix
-// information down the pipeline.
+//Sends the matrix information down the pipeline.
 function drawRocket(x, y, z)
 {
 	//Moves the cyl to its position in space.
@@ -238,6 +232,7 @@ function drawLine(x, y, z)
 	gl.uniform4fv(vDifLoc,flatten(mult(clr[1],light[1])));
 	gl.uniform4fv(vSpcLoc,flatten(mult(clr[2],light[2])));
 	gl.uniformMatrix4fv(modelViewMatrixLoc,false,flatten(instanceMatrix));
+	gl.uniformMatrix3fv(normalMatrixLoc,false,flatten(normalFromModel(instanceMatrix)));
 	
 	shading = FLAT;
 	
@@ -267,33 +262,14 @@ function drawSphere(x, y, z)
 	gl.drawArrays( gl.TRIANGLES, index[0], nPts[0]);
 }
 
-function drawTri()
-{
-	//Moves the cyl to its position in space.
-	var instanceMatrix = mult(modelViewMatrix,translate(0.0,0.0,0.0));
-	//Rotates the cyl by the proper amount.
-	instanceMatrix = mult(instanceMatrix,rotate(90,[1.0,0.0,0.0]));
-	//Scales the cube by the current scale factor.
-	//instanceMatrix = mult(instanceMatrix,scale( 1.0, 1.0, 6.0));
+// END OF DRAW FUNCTIONS
+///////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////
 
-	//polygons = pmult(scale( 1.0, 1.0, 6.0),polygons,0,4);
-	//var genResult = gen_pts_norms(polygons);
-	//points = genResult[0];
-	//normals = genResult[1];
-	
-	var clr = BODY_CLR;
-	
-	//Sends the transformation matrix to the shaders.
-	gl.uniform4fv(vAmbLoc,flatten(mult(clr[0],light[0])));
-	gl.uniform4fv(vDifLoc,flatten(mult(clr[1],light[1])));
-	gl.uniform4fv(vSpcLoc,flatten(mult(clr[2],light[2])));
-	gl.uniformMatrix4fv(modelViewMatrixLoc,false,flatten(instanceMatrix));
-	
-	shading = FLAT;
-	
-	gl.uniform1i(vShadingTypeLoc, shading);
-	gl.uniform1i(fShadingTypeLoc, shading);
-	gl.drawArrays( gl.TRIANGLES, 0, 12);
+// This function can be used to update the window as time passes
+function step_time(dT)
+{
+
 }
 
 var prev_time = 0.0;
@@ -309,33 +285,22 @@ function render(cur_time)
 	//prev_time = cur_time;
 	
 	//Sets up the model-view matrix for the camera
-	setEye(vec3(getCamR()*sin(getCamTh())*sin(getCamPh()),getCamR()*cos(getCamTh()),getCamR()*sin(getCamTh())*cos(getCamPh())));
-	var uTh = getCamTh()-getFlip()*PI/2;
-	var uPh = getCamPh();
-	if (uTh < 0)
-	{
-		uTh = -uTh;
-		uPh += PI;
-	}
-	else if (uTh > PI)
-	{
-		uTh = 2*PI-uTh;
-		uPh -= PI;
-	}
-	setUp(vec3(sin(uTh)*sin(uPh),cos(uTh),sin(uTh)*cos(uPh)));
+	eyeAtUp();
 	modelViewMatrix = lookAt(getEye(),getAt(),getUp());
 	
 	//Send Lighting Data
 	//gl.uniformMatrix4fv(lightingMatrixLoc, false, flatten(modelViewMatrix));
+	// (A lighting matrix is necessary only if the lights are not in the same
+	//  reference frame as the geometry. A light fixed to the viewer's location,
+	//  for example, would not be transformed (multiplied) by the modelViewMatrix.)
 	gl.uniform4fv(vLightPosLoc,mult(modelViewMatrix,lightPos));
 	
-	//Draws the cyl
+	//Draws the geometry
 	drawRocket(2.0, 3.0, 0.0);
 	drawFins(0.5,2.0,-3.8,0.0);
 	drawSphere(lightPos[0], lightPos[1], lightPos[2]);
 	drawSphere(0.0, 0.0, -4.0);
 	//drawLine(0.0,0.0,0.0);
-	//drawTri();
 	
 	//Renders the frame
 	window.requestAnimFrame(render);

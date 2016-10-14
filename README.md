@@ -22,4 +22,9 @@ v0.5: Initial kinks ironed out- foundation mostly complete
 	  
 v0.5.1: Removed unnecessary files from directory, updated readme
 
+v0.5.2: General cleanup
+	- Added comments to viewer.js
+	- Reorganized code in viewer.js
+	- Moved modelView calculation to camera.js 
+
 Development and testing done on a Windows 10 PC with Edge.
