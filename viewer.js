@@ -63,9 +63,9 @@ window.onload = function init()
 	///////////////////////////////////////////////////////////////
 	// Prepare Geometry - EDIT HERE
 	
-	var spherePoly = geoSphere(6,false);
-	var cylPoly = geoCyl(8,0.5,64);
-	var conePoly = geoCone(2,0.5,64);
+	var spherePoly = geoSphere(6);
+	var cylPoly = geoCyl(64);
+	var conePoly = geoCone(64);
 	var finPoly = geoFin(1.2,0.6,0.05);
 	polygons = polygons.concat(spherePoly)
 	polygons = polygons.concat(cylPoly);
@@ -96,7 +96,7 @@ window.onload = function init()
 	
     var nBuffer = gl.createBuffer();
 	gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer );
-	gl.bufferData( gl.ARRAY_BUFFER, flatten(getNormals()), gl.STATIC_DRAW );
+	gl.bufferData( gl.ARRAY_BUFFER, flatten(normals), gl.STATIC_DRAW );
 	
 	var vNorm = gl.getAttribLocation( program, "vNorm" );
 	gl.vertexAttribPointer( vNorm, 4, gl.FLOAT, false, 0, 0 );
@@ -105,7 +105,7 @@ window.onload = function init()
 	//Load the vertex and normal data into the GPU
     var vBuffer = gl.createBuffer();
     gl.bindBuffer( gl.ARRAY_BUFFER, vBuffer );
-    gl.bufferData( gl.ARRAY_BUFFER, flatten(getPoints()), gl.STATIC_DRAW );
+    gl.bufferData( gl.ARRAY_BUFFER, flatten(points), gl.STATIC_DRAW );
 	
     //Associate shader variables with the data buffers
     var vPosition = gl.getAttribLocation( program, "vPosition" );
@@ -155,14 +155,15 @@ function getULoc(program, varName)
 // should be added here.
 
 //Sends the matrix information down the pipeline.
-function drawRocket(x, y, z)
+function drawRocket(L, D, x, y, z, c_l)
 {
 	//Moves the cyl to its position in space.
-	var instanceMatrix = mult(modelViewMatrix,translate(x, y, z));
+	var instMatrix = mult(modelViewMatrix,translate(x, y, z));
 	//Rotates the cyl by the proper amount.
 	//instanceMatrix = mult(instanceMatrix,rotate(0,[1.0,0.0,0.0]));
 	//Scales the cube by the current scale factor.
-	//instanceMatrix = mult(instanceMatrix,scale( 1.0, 1.0, 1.0));
+	var cylMatrix = mult(instMatrix,scale( D, L, D ));
+	var coneMatrix = mult(instMatrix,scale( D, c_l, D ));
 	
 	var clr = BODY_CLR;
 	
@@ -170,15 +171,56 @@ function drawRocket(x, y, z)
 	gl.uniform4fv(vAmbLoc,flatten(mult(clr[0],light[0])));
 	gl.uniform4fv(vDifLoc,flatten(mult(clr[1],light[1])));
 	gl.uniform4fv(vSpcLoc,flatten(mult(clr[2],light[2])));
-	gl.uniformMatrix4fv(modelViewMatrixLoc,false,flatten(instanceMatrix));
-	gl.uniformMatrix3fv(normalMatrixLoc,false,flatten(normalFromModel(instanceMatrix)));
 	
 	shading = FLAT;
 	
 	gl.uniform1i(vShadingTypeLoc, shading);
 	gl.uniform1i(fShadingTypeLoc, shading);
+	
+	//Send the cylinder down the pipeline
+	gl.uniformMatrix4fv(modelViewMatrixLoc,false,flatten(cylMatrix));
+	gl.uniformMatrix3fv(normalMatrixLoc,false,flatten(normalFromModel(cylMatrix)));
 	gl.drawArrays( gl.TRIANGLES, index[1], nPts[1]);
+	
+	//Send the cone with same lighting but different scaling
+	gl.uniformMatrix4fv(modelViewMatrixLoc,false,flatten(coneMatrix));
+	gl.uniformMatrix3fv(normalMatrixLoc,false,flatten(normalFromModel(coneMatrix)));
 	gl.drawArrays( gl.TRIANGLES, index[2], nPts[2]);
+}
+
+function drawTAMS(D,x,y,z,l,d,c_l)
+{
+	var clr = BODY_CLR;
+	
+	//Sends the transformation matrix to the shaders.
+	gl.uniform4fv(vAmbLoc,flatten(mult(clr[0],light[0])));
+	gl.uniform4fv(vDifLoc,flatten(mult(clr[1],light[1])));
+	gl.uniform4fv(vSpcLoc,flatten(mult(clr[2],light[2])));
+	
+	shading = FLAT;
+	
+	gl.uniform1i(vShadingTypeLoc, shading);
+	gl.uniform1i(fShadingTypeLoc, shading);
+
+	
+	for (var k=0;k < 3;k++)
+	{
+		//Moves the cyl to its position in space.
+		var instMatrix = mult(modelViewMatrix,translate(x+(D+d)/2*cos(2*PI*k/3+PI/3), y, z+(D+d)/2*sin(2*PI*k/3+PI/3)));
+		//Rotates the cyl by the proper amount.
+		//instanceMatrix = mult(instanceMatrix,rotate(0,[1.0,0.0,0.0]));
+		//Scales the cube by the current scale factor.
+		var cylMatrix = mult(instMatrix,scale( d, l, d ));
+		var coneMatrix = mult(instMatrix,scale( d, c_l, d ));
+
+		gl.uniformMatrix4fv(modelViewMatrixLoc,false,flatten(cylMatrix));
+		gl.uniformMatrix3fv(normalMatrixLoc,false,flatten(normalFromModel(cylMatrix)));
+		gl.drawArrays( gl.TRIANGLES, index[1], nPts[1]);
+		
+		gl.uniformMatrix4fv(modelViewMatrixLoc,false,flatten(coneMatrix));
+		gl.uniformMatrix3fv(normalMatrixLoc,false,flatten(normalFromModel(coneMatrix)));
+		gl.drawArrays( gl.TRIANGLES, index[2], nPts[2]);
+	}
 }
 
 function drawFins(D, x, y, z)
@@ -199,8 +241,8 @@ function drawFins(D, x, y, z)
 	//Position/Rotation info changes per fin
 	for (var k=0;k < 3;k++)
 	{
-		var xx = x+D*cos(2*PI*k/3);
-		var zz = z+D*sin(2*PI*k/3);
+		var xx = x+D/2*cos(2*PI*k/3);
+		var zz = z+D/2*sin(2*PI*k/3);
 		var instanceMatrix = mult(modelViewMatrix,translate(xx, y, zz));
 		//Rotates the cyl by the proper amount.
 		instanceMatrix = mult(instanceMatrix,rotate(-120*k,[0.0,1.0,0.0]));
@@ -296,8 +338,9 @@ function render(cur_time)
 	gl.uniform4fv(vLightPosLoc,mult(modelViewMatrix,lightPos));
 	
 	//Draws the geometry
-	drawRocket(2.0, 3.0, 0.0);
-	drawFins(0.5,2.0,-3.8,0.0);
+	drawRocket(8, 1.0, 2.0, 3.0, 0.0, 2.5);
+	drawFins(1.0,2.0,-3.8,0.0);
+	drawTAMS(1.0,2.0,-2.0,0.0,3,0.5,1.5);
 	drawSphere(lightPos[0], lightPos[1], lightPos[2]);
 	drawSphere(0.0, 0.0, -4.0);
 	//drawLine(0.0,0.0,0.0);
