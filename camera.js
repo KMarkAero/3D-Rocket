@@ -9,6 +9,25 @@ var up = vec3(0.0, cos(camTh-PI/2), sin(camTh+PI));
 var flip_flag = 1;
 var PI = 3.14159;
 
+//Prevents gimbal lock when the polar angle (camTh) is outside the
+// range of 0 to PI
+function correct_th()
+{
+	if (camTh < 0)
+	{
+		camTh *= -1;
+		camPh += PI;
+		flip();
+	}
+	else if (camTh > PI)
+	{
+		camTh = 2*PI-camTh;
+		camPh -= PI;
+		flip();
+	}
+	update();
+}
+
 //Resets all view parameters to their initial values.
 // -Returns camera to its initial position
 // -Disables and resets all rotation/spinning/scrolling
@@ -44,6 +63,14 @@ function eyeAtUp()
 	}
 	up = vec3(sin(uTh)*sin(uPh),cos(uTh),sin(uTh)*cos(uPh));
 	//at = vec3(0.0,0.0,0.0);
+}
+
+function update()
+{
+	if (camPh < 0)
+		camPh += 2*PI;
+	else if (camPh >= 2*PI)
+		camPh -= 2*PI;
 }
 
 //Mutators

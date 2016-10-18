@@ -19,24 +19,6 @@ window.onmouseup = function(e)
 		mouseDown = false;
 }
 
-//Prevents gimbal lock when the polar angle (camTh) is outside the
-// range of 0 to PI
-function correct_th()
-{
-	if (getCamTh() < 0)
-	{
-		setCamTh(-getCamTh());
-		changeCamPh(PI);
-		flip();
-	}
-	else if (getCamTh() > PI)
-	{
-		setCamTh(2*PI-getCamTh());
-		changeCamPh(-PI);
-		flip();
-	}
-}
-
 //Allows the user to click and drag to change the cube view
 window.onmousemove = function(e)
 {

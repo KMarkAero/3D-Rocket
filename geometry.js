@@ -116,3 +116,20 @@ function geoSphere(subdivisions)
 	return polygons;
 }
 
+function geoGround()
+{
+	var a = vec4(-1.0, 0.0, -1.0, 1.0);
+	var b = vec4(-1.0, 0.0, 1.0, 1.0);
+	var c = vec4(1.0, 0.0, -1.0, 1.0);
+	var d = vec4(1.0, 0.0, 1.0, 1.0);
+	return [new triangle(a,b,c), new triangle(c,b,d)];
+}
+
+function geoAxes()
+{
+	var zero = vec4(0.0, 0.0, 0.0, 1.0);
+	var x = vec4(1.0, 0.0, 0.0, 1.0);
+	var y = vec4(0.0, 1.0, 0.0, 1.0);
+	var z = vec4(0.0, 0.0, 1.0, 1.0);
+	return [new line(zero,x), new line(zero,y), new line(zero,z)];
+}

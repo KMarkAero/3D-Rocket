@@ -25,6 +25,15 @@ v0.5.1: Removed unnecessary files from directory, updated readme
 v0.5.2: General cleanup
 	- Added comments to viewer.js
 	- Reorganized code in viewer.js
-	- Moved modelView calculation to camera.js 
+	- Moved modelView calculation to camera.js
+	
+v0.6: Added TAMS
+	- Next: Will look into particles or similar for exhaust, and skyboxes
+
+v0.6.1: More geometry, new projection option
+	- Added ground 
+	- Added orthogonal projection matrix
+		(Efficiency wise, need to check if better to pass both at beginning and select one vs
+		 only ever passing one, but doing it for every structure)
 
 Development and testing done on a Windows 10 PC with Edge.
