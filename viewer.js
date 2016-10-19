@@ -218,6 +218,9 @@ function drawRocket(L, D, x, y, z, c_l)
 	gl.uniformMatrix4fv(modelViewMatrixLoc,false,flatten(coneMatrix));
 	gl.uniformMatrix3fv(normalMatrixLoc,false,flatten(normalFromModel(coneMatrix)));
 	gl.drawArrays( gl.TRIANGLES, index[2], nPts[2]);
+	
+	if (firing)
+		drawExhaust(x,y-L,z,D/2,1.0,D/4,0.5);
 }
 
 function drawTAMS(D,x,y,z,l,d,c_l)
@@ -382,6 +385,49 @@ function drawSphere(x, y, z)
 	gl.drawArrays( gl.TRIANGLES, index[0], nPts[0]);
 }
 
+function drawExhaust(x, y, z, D, L, d, l)
+{
+	var clr = [
+		vec4( 1.0,1.0,0.6,1.0 ), //Ambient
+		vec4( 0.5,0.5,0.3,1.0 ), //Diffuse
+		vec4( 1.0,1.0,1.0,1.0 )  //Specular
+	];
+	gl.uniform4fv(vAmbLoc,flatten(mult(clr[0],light[0])));
+	gl.uniform4fv(vDifLoc,flatten(mult(clr[1],light[1])));
+	gl.uniform4fv(vSpcLoc,flatten(mult(clr[2],light[2])));
+	
+	shading = FLAT;
+	
+	gl.uniform1i(vProjectionTypeLoc, PERSP);
+	
+	gl.uniform1i(vShadingTypeLoc, shading);
+	gl.uniform1i(fShadingTypeLoc, shading);
+	
+	//Moves the sphere to its position in space.
+	var instanceMatrix = mult(modelViewMatrix,translate(x, y, z));
+	//Rotates the sphere by the proper amount.
+	instanceMatrix = mult(instanceMatrix,rotate(180,[1.0,0.0,0.0]));
+	//Scales the sphere by the current scale factor.
+	instanceMatrix = mult(instanceMatrix,scale( D, L, D ));
+	
+	gl.uniformMatrix4fv(modelViewMatrixLoc,false,flatten(instanceMatrix));
+	gl.uniformMatrix3fv(normalMatrixLoc,false,flatten(normalFromModel(instanceMatrix)));
+	
+	gl.drawArrays( gl.TRIANGLES, index[2], nPts[2]);
+	
+	for (var k=0;k < 3;k++)
+	{
+		instanceMatrix = mult(modelViewMatrix,translate(x+(D+d)*cos(2*PI*k/3+PI/3), y, z+(D+d)*sin(2*PI*k/3+PI/3)));
+		instanceMatrix = mult(instanceMatrix,rotate(180,[1.0,0.0,0.0]));
+		instanceMatrix = mult(instanceMatrix,scale( d, l, d ));
+		
+		gl.uniformMatrix4fv(modelViewMatrixLoc,false,flatten(instanceMatrix));
+		gl.uniformMatrix3fv(normalMatrixLoc,false,flatten(normalFromModel(instanceMatrix)));
+		
+		gl.drawArrays( gl.TRIANGLES, index[2], nPts[2]);
+	}
+}
+
 function drawGround()
 {
 	//Moves the sphere to its position in space.
@@ -411,10 +457,15 @@ function drawGround()
 ///////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
+var firing = false;
 // This function can be used to update the window as time passes
 function step_time(dT)
 {
-
+	prev_time += dT;
+	if (prev_time/1000 > 6.0)
+		firing = false;
+	else if (prev_time/1000 > 2.0)
+		firing = true;
 }
 
 var prev_time = 0.0;
@@ -426,8 +477,8 @@ function render(cur_time)
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
 
 	//Animates the cubes and texture maps
-	//step_time((cur_time-prev_time)/1000);
-	//prev_time = cur_time;
+	step_time((cur_time-prev_time)/1000);
+	prev_time = cur_time;
 	
 	//Sets up the model-view matrix for the camera
 	eyeAtUp();
@@ -447,7 +498,7 @@ function render(cur_time)
 	drawSphere(lightPos[0], lightPos[1], lightPos[2]);
 	drawSphere(0.0, 0.0, -2.0);
 	drawAxes();
-	drawGround();
+	//drawGround();
 	//drawLine(0.0,0.0,0.0);
 	
 	//Renders the frame

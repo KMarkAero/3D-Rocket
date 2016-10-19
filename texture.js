@@ -4,13 +4,13 @@ var MIPMAP = 0, NRSNBR = 1;
 var imgFilter = [NRSNBR, MIPMAP];
 
 //Creates a texture map from an image
-function texConfig(image, imgID, program)
+function texConfig(img, imgID, program)
 {
     var tex = gl.createTexture();
 	gl.activeTexture(gl.TEXTURE0+imgID);
     gl.bindTexture(gl.TEXTURE_2D, tex);
 	
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, img);
 	
 	//Apply the proper filtering
 	if (imgFilter[imgID] == MIPMAP)
