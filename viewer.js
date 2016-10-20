@@ -1,7 +1,6 @@
 var PI = 3.14159;
 var sin = Math.sin;
 var cos = Math.cos;
-function degrees(ang) { return 180*ang/PI; }
 function sind(ang) { return Math.sin(radians(ang)); }
 function cosd(ang) { return Math.cos(radians(ang)); }
 function round(num, place) { return Math.round(num/place)*place; }
@@ -11,7 +10,7 @@ var canvas;
 
 var BODY_CLR = [
 	vec4( 0.0,0.6,0.4,1.0 ), //Ambient
-	vec4( 0.0,0.6,0.4,1.0 ), //Diffuse
+	vec4( 0.0,0.3,0.2,1.0 ), //Diffuse
 	vec4( 1.0,1.0,0.0,1.0 )  //Specular
 ];
 
@@ -48,24 +47,41 @@ var light = [
 ];
 
 //Data which will be passed to the shaders
-var vLightPosLoc, vShadingTypeLoc, fShadingTypeLoc;
+var vLightPosLoc;
 var vAmbLoc, vDifLoc, vSpcLoc;
-var fAmbLoc, fDifLoc, fSpcLoc;
+var fTexLoc;
 var modelViewMatrix, perspectiveMatrix, orthogonalMatrix;
 var modelViewMatrixLoc, perspectiveMatrixLoc, orthogonalMatrixLoc, normalMatrixLoc;//, lightingMatrixLoc;
 var vProjectionTypeLoc;
-var FLAT = 0, GOURAUD = 1, PHONG = 2, NONE = 3;
 var PERSP = 10, ORTHO = 20;
 
 //Initializes WebGL, creates the geometry, and sets up buffers and uniform variables.
 window.onload = function init()
 {
 	///////////////////////////////////////////////////////////////
+	// Prepare Geometry - EDIT HERE
+	
+	//Example: addGeo(geo***(args),"choose-identifier");
+	addGeo(geoSphere(6),"SPHERE");
+	addGeo(geoCyl(64),"CYL");
+	addGeo(geoCone(64),"CONE");
+	addGeo(geoFin(1.2,0.6,0.05),"FIN");
+	addGeo(geoAxes(),"AXES");
+	addGeo(geoGround(),"GROUND");
+	addGeo(geoCube(),"CUBE");
+	addGeo(geoSphere(3),"SMOKE");
+	
+	//Create the array which stores the offsets of the points/normals arrays
+	[points, normals] = gen_pts_norms();
+	
+	// Prepare Geometry
+	///////////////////////////////////////////////////////////////
 	// Configure WebGL - Do Not Edit
+	
     canvas = document.getElementById( "gl-canvas" );
     gl = WebGLUtils.setupWebGL( canvas );
     if ( !gl ) { alert( "WebGL isn't available" ); }
-    //Configure WebGL
+	
     gl.viewport( 0, 0, canvas.width, canvas.height );
 	
 	//Background Color
@@ -78,43 +94,6 @@ window.onload = function init()
     gl.useProgram( program );
 	
 	// Configure WebGL
-	///////////////////////////////////////////////////////////////
-	// Prepare Geometry - EDIT HERE
-	
-	var spherePoly = geoSphere(6);
-	var cylPoly = geoCyl(64);
-	var conePoly = geoCone(64);
-	var finPoly = geoFin(1.2,0.6,0.05);
-	var axesPoly = geoAxes();
-	var groundPoly = geoGround();
-	polygons = polygons.concat(spherePoly)
-	polygons = polygons.concat(cylPoly);
-	polygons = polygons.concat(conePoly);
-	polygons = polygons.concat(finPoly);
-	polygons = polygons.concat(axesPoly);
-	polygons = polygons.concat(groundPoly);
-	nPts = [
-		get_nPts(spherePoly),
-		get_nPts(cylPoly),
-		get_nPts(conePoly),
-		get_nPts(finPoly),
-		get_nPts(axesPoly),
-		get_nPts(groundPoly)
-	];
-	
-	// Prepare Polygons - EDIT ABOVE
-	///////////////////////////////////////////////////////////////
-	// Prepare Poins and Normals
-	
-	//Create the array which stores the offsets of the points/normals arrays
-	for (var k=1;k < nPts.length;k++)
-		index.push(index[k-1]+nPts[k-1]);
-	
-	genResult = gen_pts_norms(polygons);
-	points = genResult[0];
-	normals = genResult[1];
-	
-	// Prepare Points and Normals
 	///////////////////////////////////////////////////////////////
 	// Geometry Buffers: Set Up and Bind the Buffers - Do Not Edit
 	
@@ -147,13 +126,9 @@ window.onload = function init()
 	//lightingMatrixLoc = getULoc( program, "lightingMatrix" );
 	vLightPosLoc = getULoc(program, "vLightPos");
 	vAmbLoc = getULoc(program, "vAmb");
-	fAmbLoc = getULoc(program, "fAmb");
 	vDifLoc = getULoc(program, "vDif");
-	fDifLoc = getULoc(program, "fDif");
 	vSpcLoc = getULoc(program, "vSpc");
-	fSpcLoc = getULoc(program, "fSpc");
-	vShadingTypeLoc = getULoc(program, "vShadingType");
-	fShadingTypeLoc = getULoc(program, "fShadingType");
+	fTexLoc = getULoc(program, "fTex");
 	vProjectionTypeLoc = getULoc(program, "vProjectionType");
 	
 	// Send Projection Matrices
@@ -163,6 +138,8 @@ window.onload = function init()
 	gl.uniformMatrix4fv(perspectiveMatrixLoc,false,flatten(perspectiveMatrix));
 	orthogonalMatrix = ortho(o_left,o_right,o_top,o_bot,near,far);
 	gl.uniformMatrix4fv(orthogonalMatrixLoc,false,flatten(orthogonalMatrix));
+	
+	document.getElementById("Ignition").onclick = function(){firing = true;};
 	
 	//Render the first frame
     window.requestAnimFrame(render);
@@ -202,23 +179,20 @@ function drawRocket(L, D, x, y, z, c_l)
 	gl.uniform4fv(vDifLoc,flatten(mult(clr[1],light[1])));
 	gl.uniform4fv(vSpcLoc,flatten(mult(clr[2],light[2])));
 	
-	shading = FLAT;
-	
-	gl.uniform1i(vShadingTypeLoc, shading);
-	gl.uniform1i(fShadingTypeLoc, shading);
-	
 	gl.uniform1i(vProjectionTypeLoc, PERSP);
 	
 	//Send the cylinder down the pipeline
 	gl.uniformMatrix4fv(modelViewMatrixLoc,false,flatten(cylMatrix));
 	gl.uniformMatrix3fv(normalMatrixLoc,false,flatten(normalFromModel(cylMatrix)));
-	gl.drawArrays( gl.TRIANGLES, index[1], nPts[1]);
+	gl.drawArrays( gl.TRIANGLES, getInd("CYL"), getNPts("CYL"));
 	
 	//Send the cone with same lighting but different scaling
 	gl.uniformMatrix4fv(modelViewMatrixLoc,false,flatten(coneMatrix));
 	gl.uniformMatrix3fv(normalMatrixLoc,false,flatten(normalFromModel(coneMatrix)));
-	gl.drawArrays( gl.TRIANGLES, index[2], nPts[2]);
+	gl.drawArrays( gl.TRIANGLES, getInd("CONE"), getNPts("CONE"));
 	
+	drawFins(D,x,y-6.8,z);
+	drawTAMS(D,x,y-5.0,z,3,D/2,1.5);
 	if (firing)
 		drawExhaust(x,y-L,z,D/2,1.0,D/4,0.5);
 }
@@ -232,11 +206,6 @@ function drawTAMS(D,x,y,z,l,d,c_l)
 	gl.uniform4fv(vDifLoc,flatten(mult(clr[1],light[1])));
 	gl.uniform4fv(vSpcLoc,flatten(mult(clr[2],light[2])));
 	
-	shading = FLAT;
-	
-	gl.uniform1i(vShadingTypeLoc, shading);
-	gl.uniform1i(fShadingTypeLoc, shading);
-
 	gl.uniform1i(vProjectionTypeLoc, PERSP);
 	
 	for (var k=0;k < 3;k++)
@@ -251,11 +220,11 @@ function drawTAMS(D,x,y,z,l,d,c_l)
 
 		gl.uniformMatrix4fv(modelViewMatrixLoc,false,flatten(cylMatrix));
 		gl.uniformMatrix3fv(normalMatrixLoc,false,flatten(normalFromModel(cylMatrix)));
-		gl.drawArrays( gl.TRIANGLES, index[1], nPts[1]);
+		gl.drawArrays( gl.TRIANGLES, getInd("CYL"), getNPts("CYL"));
 		
 		gl.uniformMatrix4fv(modelViewMatrixLoc,false,flatten(coneMatrix));
 		gl.uniformMatrix3fv(normalMatrixLoc,false,flatten(normalFromModel(coneMatrix)));
-		gl.drawArrays( gl.TRIANGLES, index[2], nPts[2]);
+		gl.drawArrays( gl.TRIANGLES, getInd("CONE"), getNPts("CONE"));
 	}
 }
 
@@ -267,11 +236,6 @@ function drawFins(D, x, y, z)
 	gl.uniform4fv(vAmbLoc,flatten(mult(clr[0],light[0])));
 	gl.uniform4fv(vDifLoc,flatten(mult(clr[1],light[1])));
 	gl.uniform4fv(vSpcLoc,flatten(mult(clr[2],light[2])));
-	
-	shading = FLAT;
-	
-	gl.uniform1i(vShadingTypeLoc, shading);
-	gl.uniform1i(fShadingTypeLoc, shading);
 	
 	gl.uniform1i(vProjectionTypeLoc, PERSP);
 	
@@ -287,7 +251,7 @@ function drawFins(D, x, y, z)
 		gl.uniformMatrix4fv(modelViewMatrixLoc,false,flatten(instanceMatrix));
 		gl.uniformMatrix3fv(normalMatrixLoc,false,flatten(normalFromModel(instanceMatrix)));
 
-		gl.drawArrays( gl.TRIANGLES, index[3], nPts[3]);
+		gl.drawArrays( gl.TRIANGLES, getInd("FIN"), getNPts("FIN"));
 	}
 }
 
@@ -315,10 +279,6 @@ function drawLine(x, y, z)
 	gl.uniformMatrix4fv(modelViewMatrixLoc,false,flatten(instanceMatrix));
 	gl.uniformMatrix3fv(normalMatrixLoc,false,flatten(normalFromModel(instanceMatrix)));
 	
-	shading = FLAT;
-	
-	gl.uniform1i(vShadingTypeLoc, shading);
-	gl.uniform1i(fShadingTypeLoc, shading);
 	gl.drawArrays( gl.LINES, index[4], nPts[4]);
 }
 
@@ -344,10 +304,7 @@ function drawAxes()
 	];
 	
 	gl.uniform1i(vProjectionTypeLoc, ORTHO);
-	shading = NONE;
 	
-	gl.uniform1i(vShadingTypeLoc, shading);
-	gl.uniform1i(fShadingTypeLoc, shading);	
 	gl.uniformMatrix4fv(modelViewMatrixLoc,false,flatten(instanceMatrix));
 	gl.uniformMatrix3fv(normalMatrixLoc,false,flatten(normalFromModel(instanceMatrix)));
 
@@ -358,7 +315,7 @@ function drawAxes()
 		//gl.uniform4fv(vDifLoc,flatten(red));
 		//gl.uniform4fv(vSpcLoc,flatten(red));
 
-		gl.drawArrays( gl.LINES, index[4]+k*2, 2);
+		gl.drawArrays( gl.LINES, getInd("AXES")+k*2, 2);
 	}
 }
 
@@ -376,32 +333,48 @@ function drawSphere(x, y, z)
 	gl.uniformMatrix4fv(modelViewMatrixLoc,false,flatten(instanceMatrix));
 	gl.uniformMatrix3fv(normalMatrixLoc,false,flatten(normalFromModel(instanceMatrix)));
 	
-	shading = FLAT;
-	
 	gl.uniform1i(vProjectionTypeLoc, PERSP);
 	
-	gl.uniform1i(vShadingTypeLoc, shading);
-	gl.uniform1i(fShadingTypeLoc, shading);
-	gl.drawArrays( gl.TRIANGLES, index[0], nPts[0]);
+	gl.drawArrays( gl.TRIANGLES, getInd("SPHERE"), getNPts("SPHERE"));
 }
 
-function drawExhaust(x, y, z, D, L, d, l)
+function drawCube(x, y, z)
 {
+	//Moves the sphere to its position in space.
+	var instanceMatrix = mult(modelViewMatrix,translate(x, y, z));
+	//Scales the sphere by the current scale factor.
+	instanceMatrix = mult(instanceMatrix,scale( 1.0, 1.0, 1.0));
+	
 	var clr = [
-		vec4( 1.0,1.0,0.6,1.0 ), //Ambient
-		vec4( 0.5,0.5,0.3,1.0 ), //Diffuse
+		vec4( 0.5,0.3,0.3,1.0 ), //Ambient
+		vec4( 0.2,0.1,0.1,1.0 ), //Diffuse
 		vec4( 1.0,1.0,1.0,1.0 )  //Specular
 	];
+	
 	gl.uniform4fv(vAmbLoc,flatten(mult(clr[0],light[0])));
 	gl.uniform4fv(vDifLoc,flatten(mult(clr[1],light[1])));
 	gl.uniform4fv(vSpcLoc,flatten(mult(clr[2],light[2])));
 	
-	shading = FLAT;
+	gl.uniformMatrix4fv(modelViewMatrixLoc,false,flatten(instanceMatrix));
+	gl.uniformMatrix3fv(normalMatrixLoc,false,flatten(normalFromModel(instanceMatrix)));
 	
 	gl.uniform1i(vProjectionTypeLoc, PERSP);
 	
-	gl.uniform1i(vShadingTypeLoc, shading);
-	gl.uniform1i(fShadingTypeLoc, shading);
+	gl.drawArrays( gl.TRIANGLES, getInd("CUBE"), getNPts("CUBE"));
+}
+
+function drawExhaust(x, y, z, D, L, d, l)
+{
+	var flame_clr = [
+		vec4( 1.0,1.0,0.6,1.0 ), //Ambient
+		vec4( 0.5,0.5,0.3,1.0 ), //Diffuse
+		vec4( 1.0,1.0,1.0,1.0 )  //Specular
+	];
+	gl.uniform4fv(vAmbLoc,flatten(mult(flame_clr[0],light[0])));
+	gl.uniform4fv(vDifLoc,flatten(mult(flame_clr[1],light[1])));
+	gl.uniform4fv(vSpcLoc,flatten(mult(flame_clr[2],light[2])));
+		
+	gl.uniform1i(vProjectionTypeLoc, PERSP);
 	
 	//Moves the sphere to its position in space.
 	var instanceMatrix = mult(modelViewMatrix,translate(x, y, z));
@@ -413,7 +386,7 @@ function drawExhaust(x, y, z, D, L, d, l)
 	gl.uniformMatrix4fv(modelViewMatrixLoc,false,flatten(instanceMatrix));
 	gl.uniformMatrix3fv(normalMatrixLoc,false,flatten(normalFromModel(instanceMatrix)));
 	
-	gl.drawArrays( gl.TRIANGLES, index[2], nPts[2]);
+	gl.drawArrays( gl.TRIANGLES, getInd("CONE"), getNPts("CONE"));
 	
 	for (var k=0;k < 3;k++)
 	{
@@ -424,8 +397,27 @@ function drawExhaust(x, y, z, D, L, d, l)
 		gl.uniformMatrix4fv(modelViewMatrixLoc,false,flatten(instanceMatrix));
 		gl.uniformMatrix3fv(normalMatrixLoc,false,flatten(normalFromModel(instanceMatrix)));
 		
-		gl.drawArrays( gl.TRIANGLES, index[2], nPts[2]);
+		gl.drawArrays( gl.TRIANGLES, getInd("CONE"), getNPts("CONE"));
 	}
+	/*
+	var dust_clr = [
+		vec4( 0.4,0.4,0.4,1.0 ), //Ambient
+		vec4( 0.0,0.0,0.0,1.0 ), //Diffuse
+		vec4( 0.0,0.0,0.0,1.0 )  //Specular
+	];
+	gl.uniform4fv(vAmbLoc,flatten(mult(dust_clr[0],light[0])));
+	gl.uniform4fv(vDifLoc,flatten(mult(dust_clr[1],light[1])));
+	gl.uniform4fv(vSpcLoc,flatten(mult(dust_clr[2],light[2])));
+	
+	//Moves the sphere to its position in space.
+	var instanceMatrix = mult(modelViewMatrix,translate(x, y-1, z));
+	//Scales the sphere by the current scale factor.
+	instanceMatrix = mult(instanceMatrix,scale( 0.1,0.1,0.1 ));
+	
+	gl.uniformMatrix4fv(modelViewMatrixLoc,false,flatten(instanceMatrix));
+	gl.uniformMatrix3fv(normalMatrixLoc,false,flatten(normalFromModel(instanceMatrix)));
+	
+	gl.drawArrays( gl.TRIANGLES, getInd("SMOKE"), getNPts("SMOKE"));*/
 }
 
 function drawGround()
@@ -444,13 +436,9 @@ function drawGround()
 	gl.uniformMatrix4fv(modelViewMatrixLoc,false,flatten(instanceMatrix));
 	gl.uniformMatrix3fv(normalMatrixLoc,false,flatten(normalFromModel(instanceMatrix)));
 	
-	shading = FLAT;
-	
 	gl.uniform1i(vProjectionTypeLoc, PERSP);
 	
-	gl.uniform1i(vShadingTypeLoc, shading);
-	gl.uniform1i(fShadingTypeLoc, shading);
-	gl.drawArrays( gl.TRIANGLES, index[5], nPts[5]);
+	gl.drawArrays( gl.TRIANGLES, getInd("GROUND"), getNPts("GROUND"));
 }
 
 // END OF DRAW FUNCTIONS
@@ -458,16 +446,27 @@ function drawGround()
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
 var firing = false;
+var fire_timer = 4.0;
 // This function can be used to update the window as time passes
 function step_time(dT)
 {
 	prev_time += dT;
-	if (prev_time/1000 > 6.0)
-		firing = false;
-	else if (prev_time/1000 > 2.0)
-		firing = true;
+	
+	if (firing)
+	{
+		vel += acc*dT;
+		fire_timer -= dT;
+		if (fire_timer <= 0.0)
+			firing = false;
+	}
+	alt += vel*dT;
+	//if (vel > 0.0)
+	//	vel -= vel*vel/500;
 }
 
+var acc = 20.0;
+var vel = 0.0;
+var alt = 0.0;
 var prev_time = 0.0;
 //Prepares the camera transformation matrix, calls all the "draw" functions,
 // and renders the frame.
@@ -491,13 +490,14 @@ function render(cur_time)
 	//  for example, would not be transformed (multiplied) by the modelViewMatrix.)
 	gl.uniform4fv(vLightPosLoc,mult(modelViewMatrix,lightPos));
 	
+	gl.uniform1i(fTexLoc,-1);
+	
 	//Draws the geometry
-	drawRocket(8, 1.0, 2.0, 3.0, 0.0, 2.5);
-	drawFins(1.0,2.0,-3.8,0.0);
-	drawTAMS(1.0,2.0,-2.0,0.0,3,0.5,1.5);
+	drawRocket(8, 1.0, 2.0, 3.0+alt, 0.0, 2.5);
 	drawSphere(lightPos[0], lightPos[1], lightPos[2]);
 	drawSphere(0.0, 0.0, -2.0);
 	drawAxes();
+	drawCube(-2.0,3.0,0.0);
 	//drawGround();
 	//drawLine(0.0,0.0,0.0);
 	

@@ -11,7 +11,7 @@ function geoCyl(nPanels)
 		var b = vec4(x,-1.0,z,1.0);
 		var c = vec4(xx,0.0,zz,1.0);
 		var d = vec4(xx,-1.0,zz,1.0);
-		polygons = polygons.concat([new triangle(a,b,c), new triangle(c,b,d)]);
+		polygons = polygons.concat([new triangle(a,c,b), new triangle(b,c,d)]);
 	}
 	return polygons;
 }
@@ -26,8 +26,8 @@ function geoCone(nPanels)
 		var z = sin(2*PI*k/nPanels)/2;
 		var zz = sin(2*PI*(k+1)/nPanels)/2;
 		var a = vec4(xx,0.0,zz,1.0);
-		var b = vec4(0.0,1.0,0.0,1.0);
-		var c = vec4(x,0.0,z,1.0);
+		var b = vec4(x,0.0,z,1.0);
+		var c = vec4(0.0,1.0,0.0,1.0);
 		polygons = polygons.concat(new triangle(a,b,c));
 	}
 	return polygons;
@@ -37,24 +37,24 @@ function geoFin(chord,span,thickness)
 {
 	var polygons = [];
 	//Leading Edge
-	var le1 = vec4(0.0,0.0,thickness/2,1.0);
-	var le2 = vec4(0.0,0.0,-thickness/2,1.0);
-	var le3 = vec4(span,-chord,-thickness/2,1.0);
-	var le4 = vec4(span,-chord,thickness/2,1.0);
+	var le1 = vec4(0.0,0.0,-thickness/2,1.0);
+	var le2 = vec4(0.0,0.0,thickness/2,1.0);
+	var le3 = vec4(span,-chord,thickness/2,1.0);
+	var le4 = vec4(span,-chord,-thickness/2,1.0);
 	
 	//Trailing Edge
-	var te1 = vec4(0.0,-chord,-thickness/2,1.0);
-	var te2 = vec4(0.0,-chord,thickness/2,1.0);
-	var te3 = vec4(span,-chord,thickness/2,1.0);
-	var te4 = vec4(span,-chord,-thickness/2,1.0);
+	var te1 = vec4(0.0,-chord,thickness/2,1.0);
+	var te2 = vec4(0.0,-chord,-thickness/2,1.0);
+	var te3 = vec4(span,-chord,-thickness/2,1.0);
+	var te4 = vec4(span,-chord,thickness/2,1.0);
 	
 	//Main Surfaces
 	var sa1 = vec4(0.0,0.0,thickness/2,1.0);
-	var sa2 = vec4(span,-chord,thickness/2,1.0);
-	var sa3 = vec4(0.0,-chord,thickness/2,1.0);
+	var sa2 = vec4(0.0,-chord,thickness/2,1.0);
+	var sa3 = vec4(span,-chord,thickness/2,1.0);
 	var sb1 = vec4(0.0,0.0,-thickness/2,1.0);
-	var sb2 = vec4(0.0,-chord,-thickness/2,1.0);
-	var sb3 = vec4(span,-chord,-thickness/2,1.0);
+	var sb2 = vec4(span,-chord,-thickness/2,1.0);
+	var sb3 = vec4(0.0,-chord,-thickness/2,1.0);
 	
 	return [
 		new triangle(le1,le2,le3),
@@ -97,7 +97,7 @@ function divTri(a, b, c, count)
 		return polygons;
 	}
 	else
-		return new triangle(a, b, c);
+		return new triangle(a, c, b);
 }
 
 function geoSphere(subdivisions)
@@ -132,4 +132,30 @@ function geoAxes()
 	var y = vec4(0.0, 1.0, 0.0, 1.0);
 	var z = vec4(0.0, 0.0, 1.0, 1.0);
 	return [new line(zero,x), new line(zero,y), new line(zero,z)];
+}
+
+function geoCube()
+{
+	var a1 = vec4(0.5,0.5,0.5,1.0);
+	var a2 = vec4(0.5,0.5,-0.5,1.0);
+	var a3 = vec4(-0.5,0.5,-0.5,1.0);
+	var a4 = vec4(-0.5,0.5,0.5,1.0);
+	var b1 = vec4(0.5,-0.5,0.5,1.0);
+	var b2 = vec4(0.5,-0.5,-0.5,1.0);
+	var b3 = vec4(-0.5,-0.5,-0.5,1.0);
+	var b4 = vec4(-0.5,-0.5,0.5,1.0);
+	return [
+		new triangle(a1,a2,a3),
+		new triangle(a1,a3,a4),
+		new triangle(a1,b1,a2),
+		new triangle(b1,b2,a2),
+		new triangle(a2,b2,a3),
+		new triangle(b2,b3,a3),
+		new triangle(a3,b3,a4),
+		new triangle(b3,b4,a4),
+		new triangle(a4,b4,a1),
+		new triangle(b4,b1,a1),
+		new triangle(b1,b3,b2),
+		new triangle(b1,b4,b3)
+	];
 }

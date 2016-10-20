@@ -26,7 +26,7 @@ function initShaders( gl, vertexShaderId, fragmentShaderId )
 
     var fragElem = document.getElementById( fragmentShaderId );
     if ( !fragElem ) { 
-        alert( "Unable to load vertex shader " + fragmentShaderId );
+        alert( "Unable to load fragment shader " + fragmentShaderId );
         return -1;
     }
     else {

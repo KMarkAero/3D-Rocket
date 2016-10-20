@@ -38,5 +38,8 @@ v0.6.1: More geometry, new projection option
 		 
 v0.6.3: Added "flame exhaust" and put on timer
 	- The rocket "fires" from t = 2.0 s to t = 6.0 s
+	
+v0.7: Added launch button and animation
+	- The launch button triggers the flame and motion
 
 Development and testing done on a Windows 10 PC with Edge.

@@ -12,8 +12,6 @@ attribute vec4 vNorm;
 uniform vec4 vAmb, vDif, vSpc;
 uniform vec4 vLightPos;
 
-uniform int vShadingType;
-
 varying vec4 fColor;
 varying vec3 n, l, v;
 
@@ -22,12 +20,12 @@ uniform mat3 normalMatrix;
 
 uniform int vProjectionType;
 
-int FLAT = 0, GOURAUD = 1, PHONG = 2, NONE = 3;
 int PERSP = 10, ORTHO = 20;
 
 void main()
 {
-	if (vShadingType == NONE)
+	//Don't shade lines (which don't have normals)
+	if (vNorm.xyz == vec3(0.0,0.0,0.0))
 	{
 		fColor = vAmb;
 		fColor.a = 1.0;
@@ -37,27 +35,25 @@ void main()
 		float shininess = 4.0;
 			
 		vec3 pointPos = (modelViewMatrix*vPosition).xyz;
-		
+			
 		n = normalize(normalMatrix*vNorm.xyz);
 		v = -normalize(pointPos);
-		
+			
 		if (vLightPos.w == 0.0)
 			l = normalize(vLightPos.xyz);
 		else
 			l = normalize(vLightPos.xyz - pointPos);
-		
-		if (vShadingType != PHONG)
-		{
-			vec3 r = normalize((2.0 * dot(l,n)*n) - l);
 			
-			vec4 amb = vAmb;
-			vec4 dif = (vDif * max(dot(l,n),0.0));
-			vec4 spc = (vSpc * pow(max(dot(r,v),0.0), shininess));
-		
-			fColor = amb+dif+spc;
-			fColor.a = 1.0;
-		}
+		vec3 r = normalize((2.0 * dot(l,n)*n) - l);
+				
+		vec4 amb = vAmb;
+		vec4 dif = (vDif * max(dot(l,n),0.0));
+		vec4 spc = (vSpc * pow(max(dot(r,v),0.0), shininess));
+			
+		fColor = amb+dif+spc;
+		fColor.a = 1.0;
 	}
+		
 	//Apply all necessary transformations to each vertex.
 	mat4 projectionMatrix = perspectiveMatrix;
 	if (vProjectionType == ORTHO)
@@ -71,33 +67,18 @@ void main()
 <script id="fragment-shader" type="x-shader/x-fragment">
 precision mediump float;
 varying vec4 fColor;
-uniform int fShadingType;
-
-uniform vec4 fAmb, fDif, fSpc;
-varying vec3 n, l, v;
-
-int PHONG = 2;
+uniform int fTex;
 
 void main()
 {
 float shininess = 4.0;
 	
-	if (fShadingType != PHONG)
+	if (fTex < 0)
 		gl_FragColor = fColor;
 	else
 	{
-		vec3 r = normalize((2.0 * dot(l,n)*n) - l);
-	
-		vec4 amb = fAmb;
-		vec4 dif = (fDif * max(dot(l,n),0.0));
-		vec4 spc = (fSpc * pow(max(dot(r,v),0.0), shininess));
-	
-		vec4 color = amb+dif+spc;
-		color.a = 1.0;
-
-		gl_FragColor = color;
+		
 	}
-	//gl_FragColor = vec4( 0.0, 0.5, 0.5, 1.0 );
 }
 </script>
 
@@ -118,5 +99,6 @@ float shininess = 4.0;
 <canvas id="gl-canvas" width="960" height="540">
 Oops ... your browser doesn't support the HTML5 canvas element
 </canvas>
+<br><br><p align="center"><button id = "Ignition">Launch!</button></p>
 </body>
 </html>

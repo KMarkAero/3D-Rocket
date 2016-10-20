@@ -20,6 +20,10 @@ function radians( degrees ) {
     return degrees * Math.PI / 180.0;
 }
 
+function degrees( ang ) { 
+	return 180 * ang / Math.PI;
+}
+
 //----------------------------------------------------------------------------
 //
 //  Vector Constructors
