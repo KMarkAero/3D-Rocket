@@ -41,5 +41,10 @@ v0.6.3: Added "flame exhaust" and put on timer
 	
 v0.7: Added launch button and animation
 	- The launch button triggers the flame and motion
-
-Development and testing done on a Windows 10 PC with Edge.
+	
+v0.7.1: Added altitude display
+	- Added HTML field which displays altitude from javascript
+	- Camera focal point ("At") can now be chosen arbitrarily
+	
+Development and testing done variously on a Windows 10 PC with Edge and Chrome, 
+  and on a Windows 7 PC with IE and Chrome.

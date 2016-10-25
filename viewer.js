@@ -39,7 +39,7 @@ var o_bot = 10.0;
 var o_top = -10.0;
 
 //Lighting Data
-var lightPos = vec4(-6.0, 4.0, 0.0, 1.0);
+var lightPos = vec4(-6.0, 4.0, 0.0, 0.0);
 var light = [
 	vec4( 1.0,1.0,1.0,1.0 ),
 	vec4( 1.0,0.9,0.9,1.0 ),
@@ -460,8 +460,9 @@ function step_time(dT)
 			firing = false;
 	}
 	alt += vel*dT;
-	//if (vel > 0.0)
-	//	vel -= vel*vel/500;
+	if (vel > 0.0)
+		vel -= vel/100;
+	document.getElementById("doc_alt").innerHTML = round(alt,1);
 }
 
 var acc = 20.0;
@@ -480,6 +481,7 @@ function render(cur_time)
 	prev_time = cur_time;
 	
 	//Sets up the model-view matrix for the camera
+	setAt(vec3(2.0, 3.0+alt, 0.0));
 	eyeAtUp();
 	modelViewMatrix = lookAt(getEye(),getAt(),getUp());
 	

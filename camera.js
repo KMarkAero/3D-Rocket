@@ -1,6 +1,6 @@
 //Camera position data
 var initCamR = 24;
-var initCamTh = 120*PI/180;
+var initCamTh = 45*PI/180;
 var initCamPh = 0;
 var camR = initCamR, camPh = initCamPh, camTh = initCamTh;
 var eye = vec3(0.0, camR*cos(camTh), camR*sin(camTh));
@@ -49,6 +49,7 @@ function reset_view()
 function eyeAtUp()
 {
 	eye = vec3(camR*sin(camTh)*sin(camPh),camR*cos(camTh),camR*sin(camTh)*cos(camPh));
+	eye = add(eye, at);
 	var uTh = camTh-flip_flag*PI/2;
 	var uPh = camPh;
 	if (uTh < 0)
@@ -62,6 +63,7 @@ function eyeAtUp()
 		uPh -= PI;
 	}
 	up = vec3(sin(uTh)*sin(uPh),cos(uTh),sin(uTh)*cos(uPh));
+	//up = add(up,at);
 	//at = vec3(0.0,0.0,0.0);
 }
 
